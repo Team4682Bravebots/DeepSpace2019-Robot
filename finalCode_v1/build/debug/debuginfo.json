@@ -1,0 +1,9 @@
+[
+  {
+    "artifact": "frcJava (in project Climber_v1)",
+    "target": "roborio",
+    "debugfile": "frcJava_roborio.debugconfig",
+    "project": "Climber_v1",
+    "language": "java"
+  }
+]
