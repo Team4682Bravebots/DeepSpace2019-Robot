@@ -1,8 +1,5 @@
 build
 .vscode
-.classpath
-.project
 
 *.log
 
-.gradle
