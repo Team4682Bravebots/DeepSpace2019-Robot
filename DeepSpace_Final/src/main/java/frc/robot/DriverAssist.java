@@ -13,7 +13,7 @@ public class DriverAssist {
   private Ultrasonic _usHatch;
   private Ultrasonic _usBall;
   private static final double kIR_Black = 3000.0;
-  private static final double kIR_White = 1500.0;
+  private static final double kIR_White = 10;//1500.0;
   private static final double kBasePower = 0.3;
 
   public DriverAssist(int irHatchRedPort, int irHatchBluePort, int irHatchYellowPort, int irBallRedPort,

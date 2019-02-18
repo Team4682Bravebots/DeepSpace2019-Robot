@@ -76,8 +76,8 @@ public class Robot extends TimedRobot {
 
   // joystick ports
   // DRIVER AND CO-DRIVER TO CONFIGURE THESE
-  private static final int kDriverPort = 0;
-  private static final int kCoDriverPort = 1;
+  private static final int kDriverPort = 1;
+  private static final int kCoDriverPort = 0;
 
   // values
   private static final double kDoubleTapThreshold = 2;
@@ -147,7 +147,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putBoolean("autoOverrideEnbaled_coDriver?", _autoOverrideEnabled_coDriver);
 
     SmartDashboard.putNumber("Ball Button Press Count", _ballDirectionCount);
-    SmartDashboard.putNumber("Hath Button Press Count", _hatchDirectionCount);
+    SmartDashboard.putNumber("Hatch Button Press Count", _hatchDirectionCount);
 
     SmartDashboard.putBoolean("elevatorBypass_hatch?", getElevatorBypass_hatch());
     SmartDashboard.putBoolean("elevatingToLowHight_hatch", _elevateToLowHeight_hatch);
@@ -240,9 +240,10 @@ public class Robot extends TimedRobot {
     // test code for elevator
     // BALL - Auto Elevate
     // left trigger means you are doing something for balls
-    if (_joy_coDriver.getRawAxis(kLeftTriggerAxis) >= kTriggerThreshold || getElevatorBypass_ball()) {
+    // can't enable if elevator is already moving to a hatch level
+    if ((_joy_coDriver.getRawAxis(kLeftTriggerAxis) >= kTriggerThreshold || getElevatorBypass_ball()) && !getElevatorBypass_hatch()) {
       // A Button -- ball low height
-      if (_joy_coDriver.getRawButtonPressed(kAButton) || _elevateToLowHeight_ball) {
+      if ((_joy_coDriver.getRawButtonPressed(kAButton) || _elevateToLowHeight_ball) && !_elevateToMidHeight_ball && !_elevateToHighHeight_ball) {
         _elevateToLowHeight_ball = true;
         if (_elevator.setBallLowHeight() || _autoOverrideEnabled_coDriver) {
           _elevateToLowHeight_ball = false;
@@ -251,7 +252,7 @@ public class Robot extends TimedRobot {
         }
 
         // B Button -- ball mid height
-      } else if (_joy_coDriver.getRawButtonPressed(kBButton) || _elevateToMidHeight_ball) {
+      } else if ((_joy_coDriver.getRawButtonPressed(kBButton) || _elevateToMidHeight_ball) && !_elevateToHighHeight_ball) {
         _elevateToMidHeight_ball = true;
         if (_elevator.setBallMidHeight() || _autoOverrideEnabled_coDriver) {
           _elevateToMidHeight_ball = false;
@@ -301,9 +302,11 @@ public class Robot extends TimedRobot {
 
     // HATCH
     // right trigger means you are doing something for hatch
-    if (_joy_coDriver.getRawAxis(kRightTriggerAxis) >= kTriggerThreshold || getElevatorBypass_hatch()) {
+    // can't enable if a ball level is already being set
+    if ((_joy_coDriver.getRawAxis(kRightTriggerAxis) >= kTriggerThreshold || getElevatorBypass_hatch()) && !getElevatorBypass_ball()) {
       // A button -- hatch low height
-      if (_joy_coDriver.getRawButtonPressed(kAButton) || _elevateToLowHeight_hatch) {
+      // can't enable if the mid or high is enabled
+      if ((_joy_coDriver.getRawButtonPressed(kAButton) || _elevateToLowHeight_hatch) && !_elevateToMidHeight_hatch && !_elevateToHighHeight_hatch) {
         _elevateToLowHeight_hatch = true;
         if (_elevator.setHatchLowHeight() || _autoOverrideEnabled_coDriver) {
           _elevateToLowHeight_hatch = false;
@@ -312,7 +315,7 @@ public class Robot extends TimedRobot {
         }
 
         // B Button -- hatch mid height
-      } else if (_joy_coDriver.getRawButtonPressed(kBButton) || _elevateToMidHeight_hatch) {
+      } else if ((_joy_coDriver.getRawButtonPressed(kBButton) || _elevateToMidHeight_hatch) && !_elevateToHighHeight_hatch) {
         _elevateToMidHeight_hatch = true;
         if (_elevator.setHatchMidHeight() || _autoOverrideEnabled_coDriver) {
           _elevateToMidHeight_hatch = false;
