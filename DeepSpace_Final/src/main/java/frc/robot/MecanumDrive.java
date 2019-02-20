@@ -3,6 +3,7 @@ package frc.robot;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class MecanumDrive {
@@ -21,10 +22,10 @@ public class MecanumDrive {
   private static final double kRpm_ms = 600.0;
 
   // TODO: Get these for each wheel from encoder
-  private static final double kHatchElec_tpr = 4096.0; // ticks per rotation
-  private static final double kHatchPneu_tpr = 4096.0;
-  private static final double kBallElec_tpr = 4096.0;
-  private static final double kBallPneu_tpr = 4096.;
+  private static final double kHatchElec_tpr = -12824.0; // ticks per rotation
+  private static final double kHatchPneu_tpr = 12016.0;
+  private static final double kBallElec_tpr = -12372.0;
+  private static final double kBallPneu_tpr = 13322.0;
 
   public MecanumDrive(int hePort, int hpPort, int bePort, int bpPort) {
     _hatchE = new TalonSRX(hePort);
@@ -46,10 +47,14 @@ public class MecanumDrive {
     _ballP.setSensorPhase(true);
 
     // TODO: tune this!
-    setupPID(_hatchE, -0.181, -0.22, 0.0, 0.0);
-    setupPID(_hatchP, -0.1705, -0.11, 0.0, 0.0);
-    setupPID(_ballE, -0.171, -0.22, 0.0, 0.0);
-    setupPID(_ballP, -0.168, -0.17, 0.0, 0.0);
+    setupPID(_hatchE, 0, 0, 0.0, 0.0);
+    setupPID(_hatchP, 0, 0, 0.0, 0.0);
+    setupPID(_ballE, 0, 0, 0.0, 0.0);
+    setupPID(_ballP, 0, 0, 0.0, 0.0);
+    // setupPID(_hatchE, -0.181, -0.22, 0.0, 0.0);
+    // setupPID(_hatchP, -0.1705, -0.11, 0.0, 0.0);
+    // setupPID(_ballE, -0.171, -0.22, 0.0, 0.0);
+    // setupPID(_ballP, -0.168, -0.17, 0.0, 0.0);
   }
 
   public void drive(double driveX, double driveY, double look) {
@@ -82,6 +87,7 @@ public class MecanumDrive {
 
   private void setupPID(TalonSRX talon, double kf, double p, double i, double d) {
     talon.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, kPidIdx, kTimeout_ms);
+    talon.setSelectedSensorPosition(0);
 
     talon.configNominalOutputForward(0.0, kTimeout_ms);
     talon.configNominalOutputReverse(0.0, kTimeout_ms);
@@ -105,10 +111,10 @@ public class MecanumDrive {
     driveX = Utils.applyDeadband(Utils.limit(driveX));
     driveY = Utils.applyDeadband(Utils.limit(driveY));
 
-    double hatchElecVel = getMulti(pidEnabled, kHatchElec_tpr) * (driveY + driveX + look);
-    double ballElecVel = getMulti(pidEnabled, kBallElec_tpr) * (-driveY + driveX - look);
-    double hatchPneVel = getMulti(pidEnabled, kHatchPneu_tpr) * (driveY - driveX - look);
-    double ballPneVel = getMulti(pidEnabled, kBallPneu_tpr) * (-driveY - driveX + look);
+    double hatchElecVel = getMulti(pidEnabled, kHatchElec_tpr) * (driveX + driveY + look); // FL
+    double ballElecVel = getMulti(pidEnabled, kBallElec_tpr) * (-driveX + driveY + look); // BL
+    double hatchPneVel = getMulti(pidEnabled, kHatchPneu_tpr) * (-driveX + driveY - look); // FR
+    double ballPneVel = getMulti(pidEnabled, kBallPneu_tpr) * (driveX + driveY - look); // BR
 
     return new DriveControl(hatchElecVel, ballElecVel, hatchPneVel, ballPneVel);
   }
@@ -116,6 +122,7 @@ public class MecanumDrive {
   public void debug() {
     SmartDashboard.putString("MECANUM", "");
     SmartDashboard.putBoolean("isDriveReversed?", isReversed());
+    SmartDashboard.putNumber("Multi No PID", getMulti(false, 0));
 
     SmartDashboard.putString("PID", "");
     debugTalon("Hatch Electric", _hatchE);
@@ -125,8 +132,8 @@ public class MecanumDrive {
   }
 
   private void debugTalon(String key, TalonSRX talon) {
+    SmartDashboard.putNumber(key + " Encoder Count", talon.getSelectedSensorPosition());
     SmartDashboard.putNumber(key + " MC Actual", talon.getSelectedSensorVelocity());
-    SmartDashboard.putNumber(key + " MC Target", talon.getClosedLoopTarget());
     SmartDashboard.putNumber(key + " MC Error", talon.getClosedLoopError());
   }
 }

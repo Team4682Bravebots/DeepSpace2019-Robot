@@ -29,16 +29,19 @@ public class Elevator {
   private static final int kPidIdx = 0;
   private static final boolean kPhase = false;
   private static final boolean kIsInverted = false;
-  private static final double kRotMulti = 4096.0;
+  private static final double kRotMulti = 16500.0;
 
   public Elevator(int m) {
     _mc = new TalonSRX(m);
   }
 
   public void init() {
+    _mc.configFactoryDefault();
+    
     _mc.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, kPidIdx, kTimeout_ms);
     _mc.setSensorPhase(kPhase);
     _mc.setInverted(kIsInverted);
+    _mc.setSelectedSensorPosition(0);
 
     _mc.configNominalOutputForward(0.0, kTimeout_ms);
     _mc.configNominalOutputReverse(0.0, kTimeout_ms);
@@ -52,7 +55,7 @@ public class Elevator {
     _mc.config_kI(kPidIdx, 0.0, kTimeout_ms);
     _mc.config_kD(kPidIdx, 0.0, kTimeout_ms);
 
-    reset();
+    //reset();
   }
 
   public void move(double joyVal) {
@@ -68,7 +71,7 @@ public class Elevator {
   }
 
   public void turnOff() {
-    move(kPower_off);
+    move(0);
   }
 
   public void reset() {
@@ -112,7 +115,6 @@ public class Elevator {
   public void debug() {
     SmartDashboard.putString("ELEVATOR", "");
     SmartDashboard.putNumber("Elevator MC Pos", _mc.getSelectedSensorPosition());
-    SmartDashboard.putNumber("Elevator MC Target", _mc.getClosedLoopTarget());
     SmartDashboard.putNumber("Elevator MC Error", _mc.getClosedLoopError());
   }
 }

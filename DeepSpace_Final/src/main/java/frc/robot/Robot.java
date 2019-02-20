@@ -51,14 +51,14 @@ public class Robot extends TimedRobot {
 
   // talon ports
   // TODO: configure these
-  private static final int kHatchElecPort_drive = 12;
-  private static final int kHatchPnePort_drive = 12;
-  private static final int kBallElecPort_drive = 12;
-  private static final int kBallPnePort_drive = 12;
+  private static final int kHatchPnePort_drive = 1;
+  private static final int kHatchElecPort_drive = 2;
+  private static final int kBallPnePort_drive = 3;
+  private static final int kBallElecPort_drive = 4;
 
-  private static final int kTalonPort1_demo = 12;
-  private static final int kTalonPort2_demo = 12;
-  private static final int kTalonPort3_demo = 12;
+  private static final int kTalonPort1_demo = 5;
+  private static final int kTalonPort2_demo = 6;
+  private static final int kTalonPort3_demo = 7;
 
   private static final int kElevatorMotorPort = 12;
 
@@ -76,8 +76,8 @@ public class Robot extends TimedRobot {
 
   // joystick ports
   // DRIVER AND CO-DRIVER TO CONFIGURE THESE
-  private static final int kDriverPort = 1;
-  private static final int kCoDriverPort = 0;
+  private static final int kDriverPort = 0;
+  private static final int kCoDriverPort = 1;
 
   // values
   private static final double kDoubleTapThreshold = 2;
@@ -121,7 +121,11 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     _mechDrive = new MecanumDrive(kHatchElecPort_drive, kHatchPnePort_drive, kBallElecPort_drive, kBallPnePort_drive);
+   _mechDrive.init(); // initialize the PID
+    
     _elevator = new Elevator(kElevatorMotorPort);
+    _elevator.init();
+    
     _dart = new Demogorgon(kTalonPort1_demo, kTalonPort2_demo, kTalonPort3_demo);
     _hank = new HatchAdams();
     _hatchUltra = new Ultrasonic(kHatchPort_us);
@@ -175,7 +179,7 @@ public class Robot extends TimedRobot {
     // DRIVER
     // test code for drive
     // y is negative, so negate if needed
-    _mechDrive.drive(_joy_driver.getRawAxis(kRightJoystickAxis_x), -_joy_driver.getRawAxis(kLeftJoystickAxis_y),
+    _mechDrive.driveDisabledPID(_joy_driver.getRawAxis(kRightJoystickAxis_x), -_joy_driver.getRawAxis(kLeftJoystickAxis_y),
         _joy_driver.getRawAxis(kLeftJoystickAxis_x));
 
     // interrupt any autonomous function by hitting the two top buttons at the same

@@ -20,8 +20,8 @@ public class Demogorgon {
 
   // TODO: Check these ports
   private static final int kLimitPort = 0;
-  private static final int kSolForward = 2;
-  private static final int kSolReverse = 3;
+  private static final int kSolForward = 6;
+  private static final int kSolReverse = 5;
 
   private static final double kPower_suck = 1.0;
   private static final double kPower_push = -1.0;

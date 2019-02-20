@@ -8,7 +8,7 @@ public class HatchAdams {
   // TODO: Do we need this second one?
   // private Solenoid _sol_retract;
 
-  private static int kSolChannel_deploy = 0;
+  private static int kSolChannel_deploy = 4;
   // private static int kSolChannel_retract = 1;
 
   public HatchAdams() {
