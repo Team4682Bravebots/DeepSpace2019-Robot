@@ -103,6 +103,8 @@ public class Robot extends TimedRobot {
   private boolean _elevateToLowHeight_hatch = false;
   private boolean _elevateToMidHeight_hatch = false;
   private boolean _elevateToHighHeight_hatch = false;
+
+  private boolean _elevateToPickupHeight = false;
   private boolean _elevateToLowHeight_ball = false;
   private boolean _elevateToMidHeight_ball = false;
   private boolean _elevateToHighHeight_ball = false;
@@ -111,6 +113,7 @@ public class Robot extends TimedRobot {
   private boolean _autoOverrideEnabled_driver = false;
   private boolean _autoOverrideEnabled_coDriver = false;
   private boolean _abortBombs = false;
+  private boolean _halfSpeed = false;
 
   @Override
   public void robotInit() {
@@ -151,10 +154,12 @@ public class Robot extends TimedRobot {
     SmartDashboard.putBoolean("elevatingToHighHight_hatch", _elevateToHighHeight_hatch);
 
     SmartDashboard.putBoolean("elevatorBypass_ball?", getElevatorBypass_ball());
+    SmartDashboard.putBoolean("elevateToPickupHeight_ball", _elevateToPickupHeight);
     SmartDashboard.putBoolean("elevatingToLowHight_ball", _elevateToLowHeight_ball);
     SmartDashboard.putBoolean("elevatingToMidHight_ball", _elevateToMidHeight_ball);
     SmartDashboard.putBoolean("elevatingToHighHight_ball", _elevateToHighHeight_ball);
 
+    SmartDashboard.putBoolean("Half Speed or End Game?", _halfSpeed);
     // debug
     _roboEyes.debug();
     _elevator.debug();
@@ -165,15 +170,19 @@ public class Robot extends TimedRobot {
     debug();
 
     // DRIVER
-    // test code for drive
+    if (_joy_driver.getRawButtonPressed(kYButton)) {
+      _halfSpeed = !_halfSpeed;
+      _mechDrive.setHalfSpeed(_halfSpeed);
+      _bewareTheDeep.setEndGame(_halfSpeed);
+    }
+
     // y is negative, so negate if needed
-    // ORIGINAL
      _mechDrive.drive(-_joy_driver.getRawAxis(kRightJoystickAxis_x), _joy_driver.getRawAxis(kLeftJoystickAxis_y),
          -_joy_driver.getRawAxis(kLeftJoystickAxis_x));
 
     // interrupt any autonomous function by hitting the two top buttons at the same time
     // this only works for driver autonomous features (driver assist, climber)
-    if (_joy_driver.getRawButton(kLeftTopButton) && _joy_driver.getRawButton(kRightTopButton)) {
+    if (_joy_driver.getRawButtonPressed(kLeftTopButton) && _joy_driver.getRawButtonPressed(kRightTopButton)) {
       _autoOverrideEnabled_driver = true;
     }
     // have a way to stop the bombs if necessary
@@ -201,6 +210,9 @@ public class Robot extends TimedRobot {
       // take in
     } else if (_joy_driver.getPOV() == kDPad_right) {
         _bewareTheDeep.intake();
+    } else if (Math.abs(_joy_coDriver.getRawAxis(kLeftJoystickAxis_y)) >= 0.1) {
+      // co-driver can help drive the teeth when climbing
+      _bewareTheDeep.drive(-_joy_coDriver.getRawAxis(kLeftJoystickAxis_y));
     } else {
       _bewareTheDeep.zero();
     }
@@ -248,9 +260,6 @@ public class Robot extends TimedRobot {
     // y is negative, so negate
     _elevator.move(-_joy_coDriver.getRawAxis(kRightJoystickAxis_y));
 
-    // co-driver can help drive the teeth when climbing
-    //_bewareTheDeep.drive(-_joy_coDriver.getRawAxis(kRightJoystickAxis_y));
-
     // push left joystick to reset encoder
     if (_joy_coDriver.getRawButtonPressed(kLeftJoytstickButton)) {
       _elevator.resetEncoder();
@@ -258,7 +267,7 @@ public class Robot extends TimedRobot {
 
     // interrupt any autonomous function by hitting the two top buttons at the same time
     // this only works for co-driver autonomous features (elevator height)
-    if (_joy_coDriver.getRawButton(kLeftTopButton) && _joy_coDriver.getRawButton(kRightTopButton)) {
+    if (_joy_coDriver.getRawButtonPressed(kLeftTopButton) && _joy_coDriver.getRawButtonPressed(kRightTopButton)) {
       _autoOverrideEnabled_coDriver = true;
     }
 
@@ -268,7 +277,7 @@ public class Robot extends TimedRobot {
     // can't enable if elevator is already moving to a hatch level
     if ((_joy_coDriver.getRawAxis(kLeftTriggerAxis) >= kTriggerThreshold || getElevatorBypass_ball()) && !getElevatorBypass_hatch()) {
       // A Button -- ball low height
-      if ((_joy_coDriver.getRawButtonPressed(kAButton) || _elevateToLowHeight_ball) && !_elevateToMidHeight_ball && !_elevateToHighHeight_ball) {
+      if ((_joy_coDriver.getRawButtonPressed(kAButton) || _elevateToLowHeight_ball) && !_elevateToMidHeight_ball && !_elevateToHighHeight_ball && !_elevateToPickupHeight) {
         _elevateToLowHeight_ball = true;
         if (_elevator.setBallLowHeight() || _autoOverrideEnabled_coDriver) {
           _elevateToLowHeight_ball = false;
@@ -277,7 +286,7 @@ public class Robot extends TimedRobot {
         }
 
         // B Button -- ball mid height
-      } else if ((_joy_coDriver.getRawButtonPressed(kBButton) || _elevateToMidHeight_ball) && !_elevateToHighHeight_ball) {
+      } else if ((_joy_coDriver.getRawButtonPressed(kBButton) || _elevateToMidHeight_ball) && !_elevateToHighHeight_ball && !_elevateToPickupHeight) {
         _elevateToMidHeight_ball = true;
         if (_elevator.setBallMidHeight() || _autoOverrideEnabled_coDriver) {
           _elevateToMidHeight_ball = false;
@@ -286,7 +295,7 @@ public class Robot extends TimedRobot {
         }
 
         // Y Button -- ball high height
-      } else if (_joy_coDriver.getRawButtonPressed(kYButton) || _elevateToHighHeight_ball) {
+      } else if ((_joy_coDriver.getRawButtonPressed(kYButton) || _elevateToHighHeight_ball) && !_elevateToPickupHeight) {
         _elevateToHighHeight_ball = true;
         if (_elevator.setBallHighHeight() || _autoOverrideEnabled_coDriver) {
           _elevateToHighHeight_ball = false;
@@ -294,16 +303,24 @@ public class Robot extends TimedRobot {
           Utils.setRumble(_joy_coDriver, kElevatorIsDoneRumble_coDriver);
         }
 
-        // right Joystick button
-        if(_joy_coDriver.getRawButtonPressed(kRightJoystickButton)) {
-          _elevator.reset();
+        // // right Joystick button
+        // if(_joy_coDriver.getRawButtonPressed(kRightJoystickButton)) {
+        //   _elevator.reset();
+        // }
+        // // Left Joystikc button
+        // if(_joy_coDriver.getRawButtonPressed(kLeftJoytstickButton)) {
+        //   _elevator.resetEncoder();
+        // }
+        
+      } else if (_joy_coDriver.getRawButtonPressed(kSelectButton_hatch) || _elevateToPickupHeight) {
+        _elevateToPickupHeight = true;
+        if (_elevator.setBallPickupHeight() || _autoOverrideEnabled_coDriver) {
+          _elevateToPickupHeight = false;
+          _autoOverrideEnabled_coDriver = false;
+          Utils.setRumble(_joy_coDriver, kElevatorIsDoneRumble_coDriver);
         }
-        // Left Joystikc button
-        if(_joy_coDriver.getRawButtonPressed(kLeftJoytstickButton)) {
-          _elevator.resetEncoder();
-        }
-        // if we are doing nothing, make sure it's off
       } else {
+        // if we are doing nothing, make sure it's off
         _elevator.turnOff();
       }
     }
@@ -363,14 +380,6 @@ public class Robot extends TimedRobot {
       }
     }
 
-    if (_joy_coDriver.getPOV() == kDPad_up) {
-      _hank.expand();
-    } else if (_joy_coDriver.getPOV() == kDPad_down) {
-      _hank.contract();
-    } else {
-      _hank.turnOffLickATongue();
-    }
-
     // X Button -- Deploy hatch
     if (_joy_coDriver.getRawButton(kXButton)) {
       _hank.deployHatch();
@@ -384,7 +393,7 @@ public class Robot extends TimedRobot {
   }
 
   private boolean getElevatorBypass_ball() {
-    return _elevateToLowHeight_ball || _elevateToMidHeight_ball || _elevateToHighHeight_ball;
+    return _elevateToLowHeight_ball || _elevateToMidHeight_ball || _elevateToHighHeight_ball || _elevateToPickupHeight;
   }
 
 }

@@ -14,6 +14,7 @@ public class MecanumDrive {
   private TalonSRX _ballP;
 
   private boolean _isReversed = false;
+  private boolean _halfSpeed = false;
 
   // PID
   private static final double kMulti = 1.0;
@@ -91,6 +92,10 @@ public class MecanumDrive {
     return _isReversed;
   }
 
+  public void setHalfSpeed(boolean hs) {
+    _halfSpeed = hs;
+  }
+
   private void setupPID(TalonSRX talon, double kf, double p, double i, double d) {
     talon.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, kPidIdx, kTimeout_ms);
     talon.setSelectedSensorPosition(0);
@@ -107,7 +112,7 @@ public class MecanumDrive {
   }
 
   private double getMulti(boolean pidEnabled, double talonTpr) {
-    double finalMulti = 1.0;
+    double finalMulti =_halfSpeed ? 0.5 : 1.0;
     finalMulti *= _isReversed ? -kMulti : kMulti;
     finalMulti *= pidEnabled ? kTargetVel_rpm * talonTpr / kRpm_ms : 1.0;
     return finalMulti;

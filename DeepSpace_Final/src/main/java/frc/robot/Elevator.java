@@ -20,6 +20,8 @@ public class Elevator {
   private static final double kBallMidHeight_rot = 8.71;
   private static final double kBallHighHeight_rot = 13.6;
 
+  private static final double kBallPickupHeight = 5.8;
+
   private static final double kHatchLowHeight_rot = 0.84;
   private static final double kHatchMidHeight_rot = 6.6;
   private static final double kHatchHighHeight_rot = 12.5;
@@ -105,6 +107,10 @@ public class Elevator {
 
   public void resetEncoder() {
     _mc.setSelectedSensorPosition(0, kPidIdx, kTimeout_ms);
+  }
+
+  public boolean setBallPickupHeight() {
+    return getTo(kRotMulti * kBallPickupHeight);
   }
 
   public boolean setBallLowHeight() {
