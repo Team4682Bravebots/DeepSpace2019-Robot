@@ -1,12 +1,9 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2018 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
+//Program created by team 4682
 
 package frc.robot;
 
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -21,12 +18,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * project.
  */
 public class Robot extends TimedRobot {
-  /**
-   * This function is run when the robot is first started up and should be used
-   * for any initialization code.
-   */
+  
 
-  // joystick constants
+  // joystick constants \\
   private static final int kAButton = 1;
   private static final int kBButton = 2;
   private static final int kXButton = 3;
@@ -35,6 +29,8 @@ public class Robot extends TimedRobot {
   private static final int kRightTopButton = 6;
   private static final int kStartButton_ball = 7;
   private static final int kSelectButton_hatch = 8;
+  private static final int kLeftJoytstickButton = 9;
+  private static final int kRightJoystickButton = 10;
 
   private static final int kLeftJoystickAxis_x = 0;
   private static final int kLeftJoystickAxis_y = 1;
@@ -49,38 +45,37 @@ public class Robot extends TimedRobot {
   private static final int kDPad_down = 180;
   private static final int kDPad_right = 270;
 
-  // talon ports
+  // talon ports \\
   // TODO: configure these
-  private static final int kHatchPnePort_drive = 1;
+  private static final int kHatchPnePort_drive = 4;
   private static final int kHatchElecPort_drive = 2;
   private static final int kBallPnePort_drive = 3;
-  private static final int kBallElecPort_drive = 4;
+  private static final int kBallElecPort_drive = 1;
 
-  private static final int kTalonPort1_demo = 5;
-  private static final int kTalonPort2_demo = 6;
-  private static final int kTalonPort3_demo = 7;
+  private static final int kElevatorMotorPort = 5;
+  private static final int kDartPort = 6;
+  private static final int kTeethPort = 7;
 
-  private static final int kElevatorMotorPort = 12;
+  private static final int kJawsSpoonPortElec = 8;
+  private static final int kJawsSpoonPortPne = 9;
 
   // sensor ports
   // TODO: Verify these!
-  private static final int kHatchRedPort_ir = 0;
-  private static final int kHatchBluePort_ir = 1;
-  private static final int kHatchYelloPort_ir = 2;
-  private static final int kBallRedPort_ir = 3;
+  private static final int kHatchRedPort_ir = 3;
+  private static final int kHatchBluePort_ir = 2;
+  private static final int kHatchYellowPort_ir = 1;
+
+  private static final int kBallRedPort_ir = 4;
   private static final int kBallBluePort_ir = 6;
   private static final int kBallYelloPort_ir = 7;
 
-  private static final int kHatchPort_us = 4;
+  private static final int kHatchPort_us = 0;
   private static final int kBallPort_us = 5;
 
   // joystick ports
   // DRIVER AND CO-DRIVER TO CONFIGURE THESE
   private static final int kDriverPort = 0;
   private static final int kCoDriverPort = 1;
-
-  // values
-  private static final double kDoubleTapThreshold = 2;
 
   // rumbles
   private static final RumbleType kDriverAssistRumble_driver = RumbleType.kRightRumble;
@@ -93,12 +88,13 @@ public class Robot extends TimedRobot {
   private Elevator _elevator;
   private Demogorgon _dart;
   private HatchAdams _hank;
-  private DriverAssist _lineFollow;
+  private Jaws _bewareTheDeep;
+
+  private DriverAssist _roboEyes;
   private Ultrasonic _hatchUltra;
   private Ultrasonic _ballUltra;
-  private Compressor _comp;
 
-  private Timer _timer;
+  private Compressor _comp;
 
   private Joystick _joy_driver;
   private Joystick _joy_coDriver;
@@ -114,44 +110,40 @@ public class Robot extends TimedRobot {
   private boolean _isDriverAssistRunning = false;
   private boolean _autoOverrideEnabled_driver = false;
   private boolean _autoOverrideEnabled_coDriver = false;
-
-  private int _hatchDirectionCount = 0;
-  private int _ballDirectionCount = 0;
+  private boolean _abortBombs = false;
 
   @Override
   public void robotInit() {
     _mechDrive = new MecanumDrive(kHatchElecPort_drive, kHatchPnePort_drive, kBallElecPort_drive, kBallPnePort_drive);
-   _mechDrive.init(); // initialize the PID
+    _mechDrive.init(); // initialize the PID
     
     _elevator = new Elevator(kElevatorMotorPort);
     _elevator.init();
-    
-    _dart = new Demogorgon(kTalonPort1_demo, kTalonPort2_demo, kTalonPort3_demo);
+
+    _bewareTheDeep = new Jaws(kTeethPort, kJawsSpoonPortElec, kJawsSpoonPortPne);
+
+    _dart = new Demogorgon(kDartPort);
     _hank = new HatchAdams();
+
     _hatchUltra = new Ultrasonic(kHatchPort_us);
     _ballUltra = new Ultrasonic(kBallPort_us);
-    _lineFollow = new DriverAssist(kHatchRedPort_ir, kHatchBluePort_ir, kHatchYelloPort_ir, kBallRedPort_ir,
-        kBallBluePort_ir, kBallYelloPort_ir, _hatchUltra, _ballUltra);
+    _roboEyes = new DriverAssist(kHatchRedPort_ir, kHatchBluePort_ir, kHatchYellowPort_ir,
+      kBallRedPort_ir, kBallBluePort_ir, kBallYelloPort_ir, _hatchUltra, _ballUltra);
+
     _comp = new Compressor();
+    _comp.setClosedLoopControl(true);
 
     _joy_driver = new Joystick(kDriverPort);
     _joy_coDriver = new Joystick(kCoDriverPort);
-
-    _timer = new Timer();
-
-    // initialize camera
-    Camera.init();
+    
+    CameraServer.getInstance().startAutomaticCapture();
   }
 
-  @Override
-  public void robotPeriodic() {
+  private void debug() {
     SmartDashboard.putString("MAIN LOGIC", "");
     SmartDashboard.putBoolean("isDriverAssistRunning?", _isDriverAssistRunning);
     SmartDashboard.putBoolean("autoOverrideEnbaled_driver?", _autoOverrideEnabled_driver);
     SmartDashboard.putBoolean("autoOverrideEnbaled_coDriver?", _autoOverrideEnabled_coDriver);
-
-    SmartDashboard.putNumber("Ball Button Press Count", _ballDirectionCount);
-    SmartDashboard.putNumber("Hatch Button Press Count", _hatchDirectionCount);
 
     SmartDashboard.putBoolean("elevatorBypass_hatch?", getElevatorBypass_hatch());
     SmartDashboard.putBoolean("elevatingToLowHight_hatch", _elevateToLowHeight_hatch);
@@ -163,63 +155,84 @@ public class Robot extends TimedRobot {
     SmartDashboard.putBoolean("elevatingToMidHight_ball", _elevateToMidHeight_ball);
     SmartDashboard.putBoolean("elevatingToHighHight_ball", _elevateToHighHeight_ball);
 
-    _mechDrive.debug();
-    _lineFollow.debug();
-    _dart.debug();
+    // debug
+    _roboEyes.debug();
     _elevator.debug();
   }
 
   @Override
-  public void teleopInit() {
-    _comp.setClosedLoopControl(true);
-  }
+  public void robotPeriodic() {
+    debug();
 
-  @Override
-  public void teleopPeriodic() {
     // DRIVER
     // test code for drive
     // y is negative, so negate if needed
-    _mechDrive.driveDisabledPID(_joy_driver.getRawAxis(kRightJoystickAxis_x), -_joy_driver.getRawAxis(kLeftJoystickAxis_y),
-        _joy_driver.getRawAxis(kLeftJoystickAxis_x));
+    // ORIGINAL
+     _mechDrive.drive(-_joy_driver.getRawAxis(kRightJoystickAxis_x), _joy_driver.getRawAxis(kLeftJoystickAxis_y),
+         -_joy_driver.getRawAxis(kLeftJoystickAxis_x));
 
-    // interrupt any autonomous function by hitting the two top buttons at the same
-    // time
+    // interrupt any autonomous function by hitting the two top buttons at the same time
     // this only works for driver autonomous features (driver assist, climber)
-    if (_joy_driver.getRawButtonPressed(kLeftTopButton) && _joy_driver.getRawButtonPressed(kRightTopButton)) {
+    if (_joy_driver.getRawButton(kLeftTopButton) && _joy_driver.getRawButton(kRightTopButton)) {
       _autoOverrideEnabled_driver = true;
     }
-
-    // if driver hits one of the reverse buttons twice, then reverse the drive from
-    // it's current state
-    if (_joy_driver.getRawButtonPressed(kStartButton_ball)) {
-      _hatchDirectionCount = 0;
-      _ballDirectionCount++;
-      if (_ballDirectionCount == kDoubleTapThreshold) {
-        _mechDrive.reverse();
-        Utils.setRumble(_joy_driver, kReverseDirectionRumble_driver);
-        _ballDirectionCount = 0;
-      }
-    } else if (_joy_driver.getRawButtonPressed(kSelectButton_hatch)) {
-      _ballDirectionCount = 0;
-      _hatchDirectionCount++;
-      if (_hatchDirectionCount == kDoubleTapThreshold) {
-        _mechDrive.reverse();
-        Utils.setRumble(_joy_driver, kReverseDirectionRumble_driver);
-        _hatchDirectionCount = 0;
-      }
+    // have a way to stop the bombs if necessary
+    if (_joy_driver.getRawButtonPressed(kRightTopButton)) {
+      _abortBombs = true;
     }
 
+    // if driver hits one of the reverse button, then reverse the drive from
+    // its current state
+    if (_joy_driver.getRawButtonPressed(kStartButton_ball) || _joy_driver.getRawButtonPressed(kSelectButton_hatch)) {
+        _mechDrive.reverse();
+        Utils.setRumble(_joy_driver, kReverseDirectionRumble_driver);
+    }
+
+    //test code for JAWS!!!!
+    // Lower the jaw
+    if (_joy_driver.getPOV() == kDPad_down  || _joy_driver.getRawAxis(kRightTriggerAxis) >= kTriggerThreshold) {
+      _bewareTheDeep.manualOpen();
+      // lift the jaw
+    } else if (_joy_driver.getPOV() == kDPad_up) {
+      _bewareTheDeep.manualClose();
+      // spit out
+    } else if (_joy_driver.getPOV() == kDPad_left || _joy_driver.getRawAxis(kLeftTriggerAxis) >= kTriggerThreshold) {
+      _bewareTheDeep.upChuck();
+      // take in
+    } else if (_joy_driver.getPOV() == kDPad_right) {
+        _bewareTheDeep.intake();
+    } else {
+      _bewareTheDeep.zero();
+    }
+
+    // fire bombs
+    if (_joy_driver.getRawButtonPressed(kAButton) && !_abortBombs) {
+      _bewareTheDeep.fireBombs();
+      // retract bombs
+    } else if (_joy_driver.getRawButtonPressed(kBButton) && !_abortBombs) {
+      _bewareTheDeep.retractBombs();
+    }
+  
+    if (_abortBombs) {
+      // ABORT ABORT ABORT
+      _bewareTheDeep.abortBombs();
+      _abortBombs = false;
+    }
+  
     // test code for driver assist
     // if we sense a line. tell the driver
-    if (_lineFollow.senseLine(_mechDrive.isReversed())) {
-      Utils.setRumble(_joy_driver, kDriverAssistRumble_driver);
+    SmartDashboard.putBoolean("ENABLE DRIVER ASSIST! DO IT!", false);
+    if (_roboEyes.senseLine(_mechDrive.isReversed())) {
+      //Utils.setRumble(_joy_driver, kDriverAssistRumble_driver);
+      SmartDashboard.putBoolean("ENABLE DRIVER ASSIST! DO IT!", true);
     }
 
     // if driver enables driver assist line follow or if we are still running, then
     // keep following the lines
-    if (_joy_driver.getRawButton(kXButton) || _isDriverAssistRunning) {
+    // X button
+    if (_joy_driver.getRawButton(kXButton) || _isDriverAssistRunning || _autoOverrideEnabled_driver) {
       _isDriverAssistRunning = true;
-      if (_lineFollow.followLine(_mechDrive) || _autoOverrideEnabled_driver) {
+      if (_roboEyes.followLine(_mechDrive) || _autoOverrideEnabled_driver) {
         _isDriverAssistRunning = false;
         _autoOverrideEnabled_driver = false;
         Utils.setRumble(_joy_driver, kDriverAssistRumble_driver);
@@ -227,17 +240,25 @@ public class Robot extends TimedRobot {
       }
     }
 
-    // CO-DRIVER
+    // END OF DRIVER CONTROLS
 
+    // CO-DRIVER
     // manual override for elevator
     // right joystick y value
     // y is negative, so negate
     _elevator.move(-_joy_coDriver.getRawAxis(kRightJoystickAxis_y));
 
-    // interrupt any autonomous function by hitting the two top buttons at the same
-    // time
+    // co-driver can help drive the teeth when climbing
+    //_bewareTheDeep.drive(-_joy_coDriver.getRawAxis(kRightJoystickAxis_y));
+
+    // push left joystick to reset encoder
+    if (_joy_coDriver.getRawButtonPressed(kLeftJoytstickButton)) {
+      _elevator.resetEncoder();
+    }
+
+    // interrupt any autonomous function by hitting the two top buttons at the same time
     // this only works for co-driver autonomous features (elevator height)
-    if (_joy_coDriver.getRawButtonPressed(kLeftTopButton) && _joy_coDriver.getRawButtonPressed(kRightTopButton)) {
+    if (_joy_coDriver.getRawButton(kLeftTopButton) && _joy_coDriver.getRawButton(kRightTopButton)) {
       _autoOverrideEnabled_coDriver = true;
     }
 
@@ -273,6 +294,14 @@ public class Robot extends TimedRobot {
           Utils.setRumble(_joy_coDriver, kElevatorIsDoneRumble_coDriver);
         }
 
+        // right Joystick button
+        if(_joy_coDriver.getRawButtonPressed(kRightJoystickButton)) {
+          _elevator.reset();
+        }
+        // Left Joystikc button
+        if(_joy_coDriver.getRawButtonPressed(kLeftJoytstickButton)) {
+          _elevator.resetEncoder();
+        }
         // if we are doing nothing, make sure it's off
       } else {
         _elevator.turnOff();
@@ -281,27 +310,19 @@ public class Robot extends TimedRobot {
 
     // test code for dart (ball deploy)
     // if left D-Pad is pressed and held --
-    // make sure it's lowered
-    // suck ball until limit it hit or button is lifted
+    // suck ball until button is lifted
     if (_joy_coDriver.getPOV() == kDPad_left) {
-      if (!_timer.isRunning()) {
-        _timer.start();
-      }
-      _dart.suckBall(_timer.get());
+      _dart.suck();
 
       // if right D-Pad is pressed and held --
       // make sure it's lifted
       // deploy ball
     } else if (_joy_coDriver.getPOV() == kDPad_right) {
-      if (!_timer.isRunning()) {
-        _timer.start();
-      }
-      _dart.deployBall(_timer.get());
+      _dart.push();
 
       // if we are doing nothing with the D-Pad, make sure dart is turned off
     } else {
       _dart.turnOff();
-      _timer.reset();
     }
 
     // HATCH
@@ -340,15 +361,22 @@ public class Robot extends TimedRobot {
       } else {
         _elevator.turnOff();
       }
-
-      // X Button -- Deploy hatch
-      if (_joy_coDriver.getRawButtonPressed(kXButton)) {
-        _hank.deployHatch();
-      } else {
-        _hank.turnOff();
-      }
     }
 
+    if (_joy_coDriver.getPOV() == kDPad_up) {
+      _hank.expand();
+    } else if (_joy_coDriver.getPOV() == kDPad_down) {
+      _hank.contract();
+    } else {
+      _hank.turnOffLickATongue();
+    }
+
+    // X Button -- Deploy hatch
+    if (_joy_coDriver.getRawButton(kXButton)) {
+      _hank.deployHatch();
+    } else {
+      _hank.turnOffHank();
+    }
   }
 
   private boolean getElevatorBypass_hatch() {

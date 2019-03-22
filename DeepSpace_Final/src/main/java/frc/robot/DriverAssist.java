@@ -1,5 +1,7 @@
 package frc.robot;
 
+import java.util.ArrayList;
+
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -12,9 +14,11 @@ public class DriverAssist {
   private AnalogInput _irBallYellow;
   private Ultrasonic _usHatch;
   private Ultrasonic _usBall;
-  private static final double kIR_Black = 3000.0;
-  private static final double kIR_White = 10;//1500.0;
-  private static final double kBasePower = 0.3;
+  
+  private static final double kIR_White = 2800.0;
+  private static final double kIR_Empty = 300;
+  private static final double kBasePowerTurn = -0.5;
+  private static final double kBasePowerForward = -0.2;
 
   public DriverAssist(int irHatchRedPort, int irHatchBluePort, int irHatchYellowPort, int irBallRedPort,
       int irBallBluePort, int irBallYellowPort, Ultrasonic usHatch, Ultrasonic usBall) {
@@ -29,17 +33,19 @@ public class DriverAssist {
   }
 
   public boolean followLine(MecanumDrive driver) {
-    if (driver.isReversed()) {
-      return followLine(driver, _irBallRed, _irBallBlue, _irBallYellow, _usBall);
-    }
+    // if (driver.isReversed()) {
+    //   return followLine(driver, _irBallRed, _irBallBlue, _irBallYellow, _usBall);
+    // }
     return followLine(driver, _irHatchRed, _irHatchBlue, _irHatchYellow, _usHatch);
   }
 
   public boolean senseLine(boolean isReversed) {
-    if (isReversed) {
-      return senseLine(_irBallRed, _irBallBlue, _irBallYellow);
-    }
+    // if (isReversed) {
+    //   return senseLine(_irBallRed, _irBallBlue, _irBallYellow);
+    // }
+    // only have hatch side
     return senseLine(_irHatchRed, _irHatchBlue, _irHatchYellow);
+    // return seesWhite(_irHatchRed);
   }
 
   private boolean senseLine(AnalogInput red, AnalogInput blue, AnalogInput yellow) {
@@ -47,7 +53,7 @@ public class DriverAssist {
   }
 
   private boolean seesWhite(AnalogInput ir) {
-    return ir.getValue() <= kIR_White;
+    return ir.getValue() <= kIR_White && ir.getValue() > kIR_Empty;
   }
 
   private boolean followLine(MecanumDrive driver, AnalogInput red, AnalogInput blue, AnalogInput yellow,
@@ -59,17 +65,17 @@ public class DriverAssist {
     double distance = ultra.getDistance();
 
     if ((!blueSeeWhite) && (!yellowSeeWhite)) {
-      driver.driveDisabledPID(0.0, kBasePower, 0.0);
+      driver.driveDisabledPID(0.0, kBasePowerForward, 0.0);
 
     } else if ((!blueSeeWhite) && (yellowSeeWhite)) {
-      driver.driveDisabledPID(0.0, 0.0, kBasePower);
+      driver.driveDisabledPID(0.0, 0.0, kBasePowerTurn);
 
     } else if ((blueSeeWhite) && (!yellowSeeWhite)) {
-      driver.driveDisabledPID(0.0, 0.0, -kBasePower);
+      driver.driveDisabledPID(0.0, 0.0, -kBasePowerTurn);
 
-    } else if ((blueSeeWhite) && (yellowSeeWhite) && (redSeeWhite)) {
+    } else if ((blueSeeWhite) && (yellowSeeWhite)) {
       if (distance >= Ultrasonic.kThreshold) {
-        driver.driveDisabledPID(0.0, kBasePower, 0.0);
+        driver.driveDisabledPID(0.0, kBasePowerForward, 0.0);
       } else {
         driver.driveDisabledPID(0.0, 0.0, 0.0);
         return true;

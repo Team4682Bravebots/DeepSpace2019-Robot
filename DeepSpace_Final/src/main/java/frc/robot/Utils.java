@@ -3,7 +3,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj.Joystick;
 
 public class Utils {
-  private static final double kDefaultDeadband = 0.05;
+  private static final double kDefaultDeadband = 0.07;
 
   private static final double kRumbleVal_on = 1.0;
   private static final double kRumbleVal_off = 0.0;

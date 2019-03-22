@@ -1,3 +1,4 @@
+
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
@@ -16,16 +17,16 @@ public class MecanumDrive {
 
   // PID
   private static final double kMulti = 1.0;
-  private static final int kTimeout_ms = 30;
+  private static final int kTimeout_ms = 0;
   private static final int kPidIdx = 0;
   private static final double kTargetVel_rpm = 500.0;
   private static final double kRpm_ms = 600.0;
 
   // TODO: Get these for each wheel from encoder
-  private static final double kHatchElec_tpr = -12824.0; // ticks per rotation
-  private static final double kHatchPneu_tpr = 12016.0;
-  private static final double kBallElec_tpr = -12372.0;
-  private static final double kBallPneu_tpr = 13322.0;
+  private static final double kHatchElec_tpr = 12824.0; // ticks per rotation
+  private static final double kHatchPneu_tpr = -12016.0;
+  private static final double kBallElec_tpr = 12372.0;
+  private static final double kBallPneu_tpr = -13322.0;
 
   public MecanumDrive(int hePort, int hpPort, int bePort, int bpPort) {
     _hatchE = new TalonSRX(hePort);
@@ -47,14 +48,14 @@ public class MecanumDrive {
     _ballP.setSensorPhase(true);
 
     // TODO: tune this!
-    setupPID(_hatchE, 0, 0, 0.0, 0.0);
-    setupPID(_hatchP, 0, 0, 0.0, 0.0);
-    setupPID(_ballE, 0, 0, 0.0, 0.0);
-    setupPID(_ballP, 0, 0, 0.0, 0.0);
-    // setupPID(_hatchE, -0.181, -0.22, 0.0, 0.0);
-    // setupPID(_hatchP, -0.1705, -0.11, 0.0, 0.0);
-    // setupPID(_ballE, -0.171, -0.22, 0.0, 0.0);
-    // setupPID(_ballP, -0.168, -0.17, 0.0, 0.0);
+   // setupPID(_hatchE, 0, 0, 0.0, 0.0);
+    //setupPID(_hatchP, 0, 0, 0.0, 0.0);
+    //setupPID(_ballE, 0, 0, 0.0, 0.0);
+   //setupPID(_ballP, 0, 0, 0.0, 0.0);
+     setupPID(_hatchE, 0.1328, 0.11, 0.0, 0); //
+     setupPID(_hatchP, -0.1247, -0.175, 0.0, 0.0);
+     setupPID(_ballE, 0.1364, -0.1, 0.0, 0.0);
+     setupPID(_ballP, -0.1247, -0.15, 0.0, 0.0); //
   }
 
   public void drive(double driveX, double driveY, double look) {
@@ -65,6 +66,11 @@ public class MecanumDrive {
     _ballE.set(ControlMode.Velocity, controller.getBallElec());
     _hatchP.set(ControlMode.Velocity, controller.getHatchPn());
     _ballP.set(ControlMode.Velocity, controller.getBallPn());
+
+    SmartDashboard.putNumber("hathE controller velocity", controller.getHatchElec());
+    SmartDashboard.putNumber("BallE controller velocity", controller.getBallElec());
+    SmartDashboard.putNumber("HatchP controller velocity", controller.getHatchPn());
+    SmartDashboard.putNumber("ballP controller velocity", controller.getBallPn());
   }
 
   public void driveDisabledPID(double driveX, double driveY, double look) {
@@ -94,10 +100,10 @@ public class MecanumDrive {
     talon.configPeakOutputForward(1.0, kTimeout_ms);
     talon.configPeakOutputReverse(-1.0, kTimeout_ms);
 
-    _hatchE.config_kF(kPidIdx, kf, kTimeout_ms);
-    _hatchE.config_kP(kPidIdx, p, kTimeout_ms);
-    _hatchE.config_kI(kPidIdx, i, kTimeout_ms);
-    _hatchE.config_kD(kPidIdx, d, kTimeout_ms);
+    talon.config_kF(kPidIdx, kf, kTimeout_ms);
+    talon.config_kP(kPidIdx, p, kTimeout_ms);
+    talon.config_kI(kPidIdx, i, kTimeout_ms);
+    talon.config_kD(kPidIdx, d, kTimeout_ms);
   }
 
   private double getMulti(boolean pidEnabled, double talonTpr) {
@@ -111,10 +117,16 @@ public class MecanumDrive {
     driveX = Utils.applyDeadband(Utils.limit(driveX));
     driveY = Utils.applyDeadband(Utils.limit(driveY));
 
-    double hatchElecVel = getMulti(pidEnabled, kHatchElec_tpr) * (driveX + driveY + look); // FL
-    double ballElecVel = getMulti(pidEnabled, kBallElec_tpr) * (-driveX + driveY + look); // BL
-    double hatchPneVel = getMulti(pidEnabled, kHatchPneu_tpr) * (-driveX + driveY - look); // FR
-    double ballPneVel = getMulti(pidEnabled, kBallPneu_tpr) * (driveX + driveY - look); // BR
+    // ORIGINAL
+    // double fixedLook = look;
+
+    // FIX FOR BALL INVERSION LOOK
+    double fixedLook = _isReversed ? -look : look;
+
+    double hatchElecVel = getMulti(pidEnabled, kHatchElec_tpr) * (driveX + driveY + fixedLook); // FL
+    double ballElecVel = getMulti(pidEnabled, kBallElec_tpr) * (driveX - driveY - fixedLook); // BL
+    double hatchPneVel = getMulti(pidEnabled, kHatchPneu_tpr) * (-driveX + driveY - fixedLook); // FR
+    double ballPneVel = getMulti(pidEnabled, kBallPneu_tpr) * (-driveX - driveY + fixedLook); // BR
 
     return new DriveControl(hatchElecVel, ballElecVel, hatchPneVel, ballPneVel);
   }
